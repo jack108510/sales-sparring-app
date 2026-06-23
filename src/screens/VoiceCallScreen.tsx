@@ -6,7 +6,10 @@ import {
   TouchableOpacity,
   Alert,
   Animated,
+  Modal,
+  SafeAreaView,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { createRetellWebCall } from '../lib/retell';
@@ -21,8 +24,10 @@ type Props = {
 export default function VoiceCallScreen({ navigation }: Props) {
   const [status, setStatus] = useState<CallStatus>('idle');
   const [callId, setCallId] = useState<string | null>(null);
+  const [webCallLink, setWebCallLink] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [showWebView, setShowWebView] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -63,8 +68,10 @@ export default function VoiceCallScreen({ navigation }: Props) {
     try {
       const webCall = await createRetellWebCall();
       setCallId(webCall.call_id);
+      setWebCallLink(webCall.web_call_link);
       setStartTime(Date.now());
       setStatus('live');
+      setShowWebView(true);
     } catch (err: unknown) {
       setStatus('idle');
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -73,6 +80,7 @@ export default function VoiceCallScreen({ navigation }: Props) {
   }
 
   async function handleEndCall() {
+    setShowWebView(false);
     setStatus('ended');
     const duration = startTime ? Math.round((Date.now() - startTime) / 1000) : elapsed;
 
@@ -82,6 +90,7 @@ export default function VoiceCallScreen({ navigation }: Props) {
         .from('sparring_sessions')
         .insert({
           user_id: user.id,
+          retell_call_id: callId,
           duration_seconds: duration,
           score: 0,
           feedback_json: null,
@@ -144,7 +153,7 @@ export default function VoiceCallScreen({ navigation }: Props) {
         <Text style={styles.timer}>{formatTime(elapsed)}</Text>
       )}
 
-      {(status === 'idle') && (
+      {status === 'idle' && (
         <TouchableOpacity style={styles.startButton} onPress={handleStartCall}>
           <Text style={styles.startButtonText}>Start Call</Text>
         </TouchableOpacity>
@@ -156,7 +165,7 @@ export default function VoiceCallScreen({ navigation }: Props) {
         </View>
       )}
 
-      {status === 'live' && (
+      {status === 'live' && !showWebView && (
         <TouchableOpacity style={styles.endButton} onPress={handleEndCall}>
           <Text style={styles.endButtonText}>End Call</Text>
         </TouchableOpacity>
@@ -167,6 +176,32 @@ export default function VoiceCallScreen({ navigation }: Props) {
           Call ID: {callId}
         </Text>
       )}
+
+      <Modal
+        visible={showWebView}
+        animationType="slide"
+        onRequestClose={handleEndCall}
+      >
+        <SafeAreaView style={styles.webViewContainer}>
+          <View style={styles.webViewHeader}>
+            <Text style={styles.webViewTitle}>Live Call</Text>
+            <TouchableOpacity style={styles.endCallOverlay} onPress={handleEndCall}>
+              <Text style={styles.endCallOverlayText}>End Call</Text>
+            </TouchableOpacity>
+          </View>
+          {webCallLink && (
+            <WebView
+              source={{ uri: webCallLink }}
+              style={styles.webView}
+              mediaPlaybackRequiresUserAction={false}
+              allowsInlineMediaPlayback
+              javaScriptEnabled
+              domStorageEnabled
+              originWhitelist={['*']}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -259,5 +294,38 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 40,
     paddingHorizontal: 16,
+  },
+  webViewContainer: {
+    flex: 1,
+    backgroundColor: '#0f0f1a',
+  },
+  webViewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e1e2e',
+  },
+  webViewTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  endCallOverlay: {
+    backgroundColor: '#ef4444',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  endCallOverlayText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  webView: {
+    flex: 1,
+    backgroundColor: '#0f0f1a',
   },
 });

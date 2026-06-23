@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList, SparringSession } from '../types';
 import { supabase } from '../lib/supabase';
+
+const POLL_INTERVAL_MS = 4000;
+const MAX_POLLS = 15;
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'CallResults'>;
@@ -32,9 +35,15 @@ export default function CallResultsScreen({ navigation, route }: Props) {
   const { sessionId } = route.params;
   const [session, setSession] = useState<SparringSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [waitingForScore, setWaitingForScore] = useState(false);
+  const pollCount = useRef(0);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadSession();
+    return () => {
+      if (pollTimer.current) clearTimeout(pollTimer.current);
+    };
   }, [sessionId]);
 
   async function loadSession() {
@@ -45,6 +54,34 @@ export default function CallResultsScreen({ navigation, route }: Props) {
       .single();
     setSession(data);
     setLoading(false);
+
+    if (data && data.score === 0 && !data.feedback_json) {
+      setWaitingForScore(true);
+      schedulePoll();
+    }
+  }
+
+  function schedulePoll() {
+    if (pollCount.current >= MAX_POLLS) {
+      setWaitingForScore(false);
+      return;
+    }
+    pollTimer.current = setTimeout(async () => {
+      pollCount.current += 1;
+      const { data } = await supabase
+        .from('sparring_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+      if (data) {
+        setSession(data);
+        if (data.score > 0 || data.feedback_json) {
+          setWaitingForScore(false);
+        } else {
+          schedulePoll();
+        }
+      }
+    }, POLL_INTERVAL_MS);
   }
 
   if (loading) {
@@ -80,6 +117,12 @@ export default function CallResultsScreen({ navigation, route }: Props) {
 
       <View style={styles.scoreSection}>
         <ScoreRing score={session.score} />
+        {waitingForScore && (
+          <View style={styles.processingRow}>
+            <ActivityIndicator size="small" color="#6c63ff" />
+            <Text style={styles.processingText}>AI is scoring your call…</Text>
+          </View>
+        )}
         <Text style={styles.durationText}>
           Duration: {durationMin > 0 ? `${durationMin}m ` : ''}{durationSec}s
         </Text>
@@ -113,12 +156,14 @@ export default function CallResultsScreen({ navigation, route }: Props) {
           )}
         </>
       ) : (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Feedback Pending</Text>
-          <Text style={styles.cardBody}>
-            AI feedback will appear here once it's been processed. Check back shortly.
-          </Text>
-        </View>
+        !waitingForScore && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Feedback Pending</Text>
+            <Text style={styles.cardBody}>
+              AI feedback will appear here once it's been processed. Check back shortly.
+            </Text>
+          </View>
+        )
       )}
 
       <TouchableOpacity
@@ -155,6 +200,13 @@ const styles = StyleSheet.create({
   },
   scoreNumber: { fontSize: 44, fontWeight: '900' },
   scoreLabel: { fontSize: 14, fontWeight: '600', marginTop: 2 },
+  processingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  processingText: { color: '#6c63ff', fontSize: 13 },
   durationText: { fontSize: 14, color: '#888' },
   card: {
     backgroundColor: '#1e1e2e',

@@ -9,14 +9,18 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ca.wildroseautomations.salessparring"
+      "bundleIdentifier": "ca.wildroseautomations.salessparring",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Sales Sparring needs your microphone for practice calls with the AI buyer."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "ca.wildroseautomations.salessparring"
+      "package": "ca.wildroseautomations.salessparring",
+      "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
