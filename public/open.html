@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Sales Sparring</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f0f1a;
+      color: #fff;
+      font-family: -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo { font-size: 64px; margin-bottom: 24px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    p { color: #888; font-size: 16px; margin-bottom: 32px; }
+    .btn {
+      background: #6c63ff;
+      color: #fff;
+      text-decoration: none;
+      padding: 18px 40px;
+      border-radius: 50px;
+      font-size: 18px;
+      font-weight: 700;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .note { color: #555; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="logo">🥊</div>
+  <h1>Sales Sparring</h1>
+  <p>Tap below to open in Expo Go</p>
+  <a class="btn" href="exp://synoecious-quizzable-adrian.ngrok-free.dev">Open in Expo Go</a>
+  <p class="note">Requires the Expo Go app installed</p>
+  <script>
+    // Auto-redirect on load
+    setTimeout(() => {
+      window.location.href = 'exp://synoecious-quizzable-adrian.ngrok-free.dev';
+    }, 500);
+  </script>
+</body>
+</html>
