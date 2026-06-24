@@ -2,6 +2,7 @@
   "expo": {
     "name": "Sales Sparring",
     "slug": "sales-sparring-app",
+    "owner": "jackwilde",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,19 +21,31 @@
         "backgroundColor": "#ffffff"
       },
       "package": "ca.wildroseautomations.salessparring",
-      "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"]
+      "permissions": [
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-constants"
-    ],
+    "plugins": [],
     "extra": {
       "supabaseUrl": "https://xacehhtgvubcqdoltazg.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhY2VoaHRndnViY3Fkb2x0YXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDI4NjcsImV4cCI6MjA4OTUxODg2N30.cHCCtXwtl8BW2G2yB8WJqfFeUNCzFwDNd2jDGvyWYew",
       "retellApiKey": "key_c833df9a891bacfc002cf8714c0c",
-      "retellAgentId": "agent_1f0203a93570267a1bf6b5c53f"
+      "retellAgentId": "agent_1f0203a93570267a1bf6b5c53f",
+      "eas": {
+        "projectId": "ebbd7315-20e7-48d2-99af-fd20745cc6e7"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ebbd7315-20e7-48d2-99af-fd20745cc6e7"
     }
   }
 }
