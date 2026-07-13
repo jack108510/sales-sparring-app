@@ -3,27 +3,35 @@
     "name": "Sales Sparring",
     "slug": "sales-sparring-app",
     "owner": "jackwilde",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f1a"
+    },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "ca.wildroseautomations.salessparring",
+      "supportsTablet": false,
+      "bundleIdentifier": "com.salessparring.app",
+      "buildNumber": "4",
+      "deploymentTarget": "15.0",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Sales Sparring needs your microphone for practice calls with the AI buyer."
+        "NSMicrophoneUsageDescription": "Sales Sparring needs your microphone for practice calls with the AI buyer.",
+        "NSSpeechRecognitionUsageDescription": "Sales Sparring uses speech recognition so you can practice objections out loud.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "ca.wildroseautomations.salessparring",
+      "package": "com.salessparring.app",
       "permissions": [
-        "RECORD_AUDIO",
-        "MODIFY_AUDIO_SETTINGS",
         "RECORD_AUDIO",
         "MODIFY_AUDIO_SETTINGS"
       ]
@@ -31,7 +39,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [],
+    "assetBundlePatterns": [
+      "assets/**"
+    ],
+    "plugins": [
+      "expo-asset",
+      "expo-iap",
+      "expo-speech-recognition"
+    ],
     "extra": {
       "supabaseUrl": "https://xacehhtgvubcqdoltazg.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhY2VoaHRndnViY3Fkb2x0YXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDI4NjcsImV4cCI6MjA4OTUxODg2N30.cHCCtXwtl8BW2G2yB8WJqfFeUNCzFwDNd2jDGvyWYew",

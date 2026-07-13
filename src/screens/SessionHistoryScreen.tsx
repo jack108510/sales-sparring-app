@@ -16,7 +16,7 @@ import { supabase } from '../lib/supabase';
 
 type Props = {
   navigation: CompositeNavigationProp<
-    BottomTabNavigationProp<TabParamList, 'History'>,
+    BottomTabNavigationProp<TabParamList, 'Vault'>,
     NativeStackNavigationProp<RootStackParamList>
   >;
 };
