@@ -176,10 +176,13 @@ export default function App() {
         const productId = msg.productId as string;
         if (!productId) break;
 
+        postToWebView({ type: 'iap_purchase_started', productId });
         const result = await purchaseProduct(productId);
         if (!result.success && result.error && result.error !== 'cancelled') {
           Alert.alert('Purchase Failed', result.error);
           postToWebView({ type: 'iap_purchase_error', message: result.error });
+        } else if (!result.success && result.error === 'cancelled') {
+          postToWebView({ type: 'iap_purchase_error', message: 'cancelled' });
         }
         // On success the purchase listener fires and posts iap_purchase_success
         break;

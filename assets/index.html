@@ -1168,7 +1168,11 @@ async function checkPlanUpgraded(){
 // Called by native layer after a purchase or restore completes
 window.onNativeMessage = function(msg) {
   if (!msg || !msg.type) return;
-  if (msg.type === 'iap_purchase_success') {
+  if (msg.type === 'iap_purchase_started') {
+    setIapStatus('Opening Apple purchase sheet…');
+  } else if (msg.type === 'iap_purchase_success') {
+    setIapStatus('');
+    document.querySelectorAll('[data-iap-product]').forEach(btn => btn.disabled = false);
     const plan = msg.plan || 'pro';
     // Update local plan state immediately
     const cfg = PLAN_CONFIG[plan] || PLAN_CONFIG.pro;
@@ -1180,7 +1184,8 @@ window.onNativeMessage = function(msg) {
     closeScorecard && closeScorecard();
     showPlanActivated();
   } else if (msg.type === 'iap_purchase_error') {
-    closeScorecard && closeScorecard();
+    setIapStatus(msg.message ? ('Purchase failed: ' + msg.message) : 'Purchase failed', true);
+    document.querySelectorAll('[data-iap-product]').forEach(btn => btn.disabled = false);
     // Silently ignore cancels; show alert for real errors
     if (msg.message && !String(msg.message).toLowerCase().includes('cancel')) {
       alert('Purchase failed: ' + msg.message);
@@ -1196,11 +1201,23 @@ window.onNativeMessage = function(msg) {
   }
 };
 
+function setIapStatus(message, isError=false){
+  const el = document.getElementById('iap-status');
+  if(!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+  el.style.color = isError ? '#e53e3e' : '#0066ff';
+}
+
 // Send a message to the native layer to trigger a StoreKit purchase
 function requestNativePurchase(productId) {
+  setIapStatus('Opening Apple purchase sheet…');
+  document.querySelectorAll('[data-iap-product]').forEach(btn => btn.disabled = true);
   if (window.ReactNativeWebView) {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'iap_purchase', productId }));
   } else {
+    setIapStatus('', false);
+    document.querySelectorAll('[data-iap-product]').forEach(btn => btn.disabled = false);
     alert('In-app purchases are only available in the iOS app.');
   }
 }
@@ -1336,18 +1353,19 @@ function showUpgradeSheet(plan, reason){
       <div style="font-size:1.05rem;font-weight:900;color:#111;margin-bottom:6px">${reason||'Upgrade your plan'}</div>
       <div style="font-size:0.82rem;color:#777;line-height:1.5;margin-bottom:22px">Get more practice minutes every month with a Pro or Elite subscription.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-        <button onclick="requestNativePurchase('salessparringpro')" style="background:#f8faff;border:1.5px solid #0066ff;border-radius:14px;padding:16px 10px;cursor:pointer;text-align:center">
+        <button type="button" data-iap-product="salessparringpro" onclick="requestNativePurchase('salessparringpro')" style="background:#f8faff;border:1.5px solid #0066ff;border-radius:14px;padding:16px 10px;cursor:pointer;text-align:center">
           <div style="font-size:0.72rem;font-weight:800;color:#0066ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Pro</div>
           <div style="font-size:1.1rem;font-weight:900;color:#111">$29/mo</div>
           <div style="font-size:0.75rem;color:#777;margin-top:4px">150 min/month</div>
         </button>
-        <button onclick="requestNativePurchase('SalesSparringPremium.Plan')" style="background:#faf5ff;border:1.5px solid #7c3aed;border-radius:14px;padding:16px 10px;cursor:pointer;text-align:center">
+        <button type="button" data-iap-product="SalesSparringPremium.Plan" onclick="requestNativePurchase('SalesSparringPremium.Plan')" style="background:#faf5ff;border:1.5px solid #7c3aed;border-radius:14px;padding:16px 10px;cursor:pointer;text-align:center">
           <div style="font-size:0.72rem;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Elite ⭐</div>
           <div style="font-size:1.1rem;font-weight:900;color:#111">$49/mo</div>
           <div style="font-size:0.75rem;color:#777;margin-top:4px">300 min/month</div>
         </button>
       </div>
-      <button onclick="requestNativeRestore()" style="width:100%;background:none;color:#0066ff;border:1.5px solid #0066ff;border-radius:12px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;margin-bottom:10px">Restore Purchases</button>
+      <div id="iap-status" style="display:none;font-size:0.72rem;font-weight:700;margin:-8px 0 12px;color:#0066ff"></div>
+      <button type="button" onclick="requestNativeRestore()" style="width:100%;background:none;color:#0066ff;border:1.5px solid #0066ff;border-radius:12px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer;margin-bottom:10px">Restore Purchases</button>
       <button onclick="closeScorecard()" style="width:100%;background:#f2f2f2;color:#555;border:none;border-radius:12px;padding:11px;font-size:0.82rem;font-weight:700;cursor:pointer">Keep Practicing Free</button>
       <div style="font-size:0.68rem;color:#bbb;margin-top:12px;line-height:1.4">Subscriptions auto-renew unless cancelled. Manage in Settings → Apple ID → Subscriptions.</div>
     </div>
@@ -1355,6 +1373,26 @@ function showUpgradeSheet(plan, reason){
   modal.style.display = 'block';
 }
 window.showUpgradeSheet = showUpgradeSheet;
+
+// Backup click handling for App Review devices: do not rely solely on inline
+// onclick attributes inside module-loaded HTML. Capture taps by data attributes.
+document.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const iapButton = target.closest('[data-iap-product]');
+  if (iapButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    requestNativePurchase(iapButton.getAttribute('data-iap-product'));
+    return;
+  }
+  const upgradeButton = target.closest('[data-upgrade-trigger]');
+  if (upgradeButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    showUpgradeSheet(null, 'Choose your plan');
+  }
+}, true);
 
 // showPaymentsUnavailable is now an alias for the upgrade sheet
 function showPaymentsUnavailable(plan, reason){
@@ -4125,7 +4163,7 @@ function renderSettings(){
             <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:0.7;margin-bottom:4px">Current Plan</div>
             <div style="font-size:1.2rem;font-weight:900">Free</div>
           </div>
-          <button onclick="showUpgradeSheet(null, 'Choose your plan')" style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:800;font-size:0.82rem;border-radius:50px;padding:8px 18px;cursor:pointer">Upgrade ↑</button>
+          <button type="button" data-upgrade-trigger="true" onclick="showUpgradeSheet(null, 'Choose your plan')" style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:800;font-size:0.82rem;border-radius:50px;padding:8px 18px;cursor:pointer">Upgrade ↑</button>
         </div>
         <div style="font-size:0.78rem;opacity:0.8;margin-bottom:8px">${userPlan.minutes_remaining} of ${userPlan.minutes_total} min remaining this month</div>
         <div style="height:5px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden">

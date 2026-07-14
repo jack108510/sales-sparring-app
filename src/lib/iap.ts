@@ -75,7 +75,17 @@ export async function purchaseProduct(
     // Ensure products are loaded before attempting purchase.
     // If setupIAP's fetchProducts failed or was skipped, try again here.
     if (!connectionInitialized) {
-      await setupIAP();
+      const ready = await setupIAP();
+      if (!ready) {
+        return { success: false, error: 'Could not connect to Apple in-app purchases. Please try again.' };
+      }
+    }
+
+    // Fetch the exact subscription before opening the StoreKit sheet. If Apple
+    // does not return it, fail visibly instead of looking inert to App Review.
+    const products = await fetchProducts({ skus: [productId], type: 'subs' });
+    if (!products || products.length === 0) {
+      return { success: false, error: 'This subscription is not available from Apple yet. Please try again shortly.' };
     }
 
     // Build purchase request for a subscription (type: 'subs').

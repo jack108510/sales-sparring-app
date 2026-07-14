@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.salessparring.app",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "deploymentTarget": "15.0",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Sales Sparring needs your microphone for practice calls with the AI buyer.",
