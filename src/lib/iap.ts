@@ -96,8 +96,21 @@ export async function purchaseProduct(
         apple: { sku: productId },
       },
     };
-    await requestPurchase(purchaseArgs);
-    // Result comes via the PurchaseUpdated event listener set up separately
+    const purchaseResult = (await requestPurchase(purchaseArgs)) as Purchase | Purchase[] | null;
+    const purchases = Array.isArray(purchaseResult)
+      ? purchaseResult
+      : purchaseResult
+        ? [purchaseResult]
+        : [];
+
+    for (const purchase of purchases) {
+      const plan = await processPurchase(purchase);
+      if (plan) return { success: true, plan };
+    }
+
+    // Most StoreKit flows resolve through the PurchaseUpdated listener instead
+    // of this return value. Returning success keeps the WebView in an explicit
+    // "Opening Apple purchase sheet…" state instead of looking inert.
     return { success: true };
   } catch (e: any) {
     const msg = e?.message || String(e);

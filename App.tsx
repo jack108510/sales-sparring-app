@@ -167,7 +167,15 @@ export default function App() {
     switch (msg.type) {
       // ── Open external URL (legacy) ─────────────────────────────────────────
       case 'openURL': {
-        if (typeof msg.url === 'string') Linking.openURL(msg.url);
+        if (typeof msg.url === 'string') {
+          // Never let legacy checkout/payment links escape to Safari on iOS.
+          // Purchases must stay inside the native StoreKit bridge.
+          if (/stripe|checkout|billing|payment/i.test(msg.url)) {
+            postToWebView({ type: 'show_upgrade_sheet' });
+          } else {
+            Linking.openURL(msg.url);
+          }
+        }
         break;
       }
 
@@ -178,13 +186,17 @@ export default function App() {
 
         postToWebView({ type: 'iap_purchase_started', productId });
         const result = await purchaseProduct(productId);
-        if (!result.success && result.error && result.error !== 'cancelled') {
+        if (result.success && result.plan) {
+          postToWebView({ type: 'iap_purchase_success', plan: result.plan });
+        } else if (!result.success && result.error && result.error !== 'cancelled') {
           Alert.alert('Purchase Failed', result.error);
           postToWebView({ type: 'iap_purchase_error', message: result.error });
         } else if (!result.success && result.error === 'cancelled') {
           postToWebView({ type: 'iap_purchase_error', message: 'cancelled' });
         }
-        // On success the purchase listener fires and posts iap_purchase_success
+        // On most devices success comes via the PurchaseUpdated event listener.
+        // If expo-iap returns a purchase directly, the result.plan branch above
+        // handles it so the web UI never sits on "Opening…" forever.
         break;
       }
 
@@ -255,7 +267,7 @@ export default function App() {
       {html && (
         <WebView
           ref={webViewRef}
-          source={{ html, baseUrl: 'https://salessparring.app' }}
+          source={{ html, baseUrl: 'https://salessparring.ca' }}
           style={styles.webview}
           originWhitelist={['*']}
           allowFileAccess
@@ -264,15 +276,21 @@ export default function App() {
           javaScriptEnabled
           domStorageEnabled
           mediaPlaybackRequiresUserAction={false}
+          mediaCapturePermissionGrantType="grant"
           allowsInlineMediaPlayback
           mixedContentMode="always"
           onLoad={() => setWebViewReady(true)}
           onMessage={handleWebViewMessage}
           onShouldStartLoadWithRequest={(req) => {
+            // Never let legacy checkout/payment navigations leave the app.
+            if (/stripe|checkout|billing|payment/i.test(req.url || '')) {
+              postToWebView({ type: 'show_upgrade_sheet' });
+              return false;
+            }
             // Intercept external URLs and open in Safari
             if (
               req.url &&
-              !req.url.startsWith('https://salessparring.app') &&
+              !req.url.startsWith('https://salessparring.ca') &&
               !req.url.startsWith('about:') &&
               req.navigationType === 'click'
             ) {
