@@ -81,15 +81,19 @@ export async function purchaseProduct(
       }
     }
 
-    // Fetch the exact subscription before opening the StoreKit sheet. If Apple
-    // does not return it, fail visibly instead of looking inert to App Review.
-    const products = await fetchProducts({ skus: [productId], type: 'subs' });
-    if (!products || products.length === 0) {
-      return { success: false, error: 'This subscription is not available from Apple yet. Please try again shortly.' };
+    // Warm StoreKit with the exact subscription, but do not block the purchase
+    // solely because fetchProducts returns 0. Sandbox/TestFlight/App Review can
+    // be briefly stale for first-time READY_TO_SUBMIT subscriptions; the real
+    // source of truth is requestPurchase, which must be allowed to open StoreKit.
+    try {
+      const products = await fetchProducts({ skus: [productId], type: 'subs' });
+      console.log('[IAP] fetchProducts for purchase loaded:', products?.length ?? 0, 'products');
+    } catch (fe) {
+      console.warn('[IAP] fetchProducts before purchase failed; still requesting StoreKit:', fe);
     }
 
-    // Build purchase request for a subscription (type: 'subs').
-    // expo-iap v4 expects `apple` (not `ios`) for iOS subscription purchases.
+    // Build purchase request for a subscription. expo-iap/OpenIAP expects
+    // `type: 'subs'` for subscriptions and `apple.sku` for iOS.
     const purchaseArgs = {
       type: 'subs' as const,
       request: {
